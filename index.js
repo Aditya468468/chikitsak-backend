@@ -5,14 +5,14 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ CORS Setup: Allow frontend from Vercel to access this backend
-const allowedOrigins = [
-   /\.vercel\.app$/
-];
+// ✅ CORS Setup: Allow frontend from *.vercel.app
+const allowedOrigins = [/\.vercel\.app$/];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.some(pattern =>
+      pattern instanceof RegExp ? pattern.test(origin) : pattern === origin
+    )) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
