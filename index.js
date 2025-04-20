@@ -7,7 +7,6 @@ const PORT = process.env.PORT || 5000;
 
 // ✅ CORS Setup: Allow frontend from *.vercel.app
 const allowedOrigins = [/\.vercel\.app$/];
-
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.some(pattern =>
@@ -24,7 +23,7 @@ app.use(express.json());
 
 let diseaseData = [];
 
-// ✅ Load CSV data into memory
+// ✅ Load cleaned CSV data into memory
 fs.createReadStream("cleaned_symptom_disease_dataset.csv")
   .pipe(csv())
   .on("data", (row) => {
@@ -34,36 +33,28 @@ fs.createReadStream("cleaned_symptom_disease_dataset.csv")
     console.log("CSV loaded ✅");
   });
 
-// ✅ Symptom weights for each disease
+// ✅ Symptom weights (optional, modify as needed)
 const symptomWeights = {
   asthma: {
     "wheezing": 3,
     "cough": 2,
-    "shortness of breath": 3,
-    "chest tightness": 2,
-    "difficulty breathing": 3,
+    "shortness_of_breath": 3,
+    "chest_tightness": 2,
+    "difficulty_breathing": 3,
   },
-  heartAttack: {
-    "chest pain": 5,
-    "shortness of breath": 4,
+  heartattack: {
+    "chest_pain": 5,
+    "shortness_of_breath": 4,
     "nausea": 3,
     "dizziness": 3,
-    "pain in left arm": 4,
+    "pain_in_left_arm": 4,
     "sweating": 4,
     "fatigue": 3,
-  },
-  anxiety: {
-    "rapid heartbeat": 4,
-    "sweating": 3,
-    "trembling": 3,
-    "shortness of breath": 3,
-    "feeling of dread": 4,
-    "difficulty concentrating": 2,
   },
   flu: {
     "fever": 3,
     "fatigue": 2,
-    "body ache": 2,
+    "body_ache": 2,
     "headache": 2,
     "chills": 2,
     "cough": 3,
@@ -71,81 +62,76 @@ const symptomWeights = {
   covid: {
     "fever": 3,
     "cough": 2,
-    "shortness of breath": 4,
-    "loss of taste": 3,
-    "loss of smell": 3,
+    "shortness_of_breath": 4,
+    "loss_of_taste": 3,
+    "loss_of_smell": 3,
+  },
+  anxiety: {
+    "rapid_heartbeat": 4,
+    "sweating": 3,
+    "trembling": 3,
+    "shortness_of_breath": 3,
+    "feeling_of_dread": 4,
+    "difficulty_concentrating": 2,
   },
   allergies: {
-    "itchy eyes": 2,
+    "itchy_eyes": 2,
     "sneezing": 3,
-    "runny nose": 3,
+    "runny_nose": 3,
     "congestion": 2,
   },
-  foodPoisoning: {
+  foodpoisoning: {
     "nausea": 3,
     "vomiting": 3,
     "diarrhea": 3,
-    "stomach cramps": 3,
+    "stomach_cramps": 3,
   },
   migraine: {
     "headache": 4,
-    "sensitivity to light": 3,
+    "sensitivity_to_light": 3,
     "nausea": 3,
-    "visual disturbances": 3,
+    "visual_disturbances": 3,
   },
   dehydration: {
     "thirst": 2,
-    "dry mouth": 2,
+    "dry_mouth": 2,
     "fatigue": 3,
     "dizziness": 3,
-    "dark urine": 3,
+    "dark_urine": 3,
   },
-  legPain: {
-    "leg pain": 5,
+  legpain: {
+    "leg_pain": 5,
     "swelling": 4,
     "bruising": 3,
-    "pain when walking": 4,
+    "pain_when_walking": 4,
     "numbness": 3,
   }
 };
 
-// ✅ API Route (Improved with stricter symptom matching)
+// ✅ POST endpoint to get matching diseases
 app.post("/api/symptoms", (req, res) => {
-  const userSymptoms = req.body.symptoms.map(s => s.toLowerCase());
+  const userSymptoms = req.body.symptoms.map(s => s.toLowerCase().replace(/ /g, "_"));
   const resultMap = {};
 
-  diseaseData.forEach((entry) => {
+  diseaseData.forEach(entry => {
+    const disease = entry.Disease;
+    const symptoms = JSON.parse(entry.All_Symptoms.replace(/'/g, '"'));
+
     let matchCount = 0;
 
-    // Track matched symptoms count
-    let matchedSymptoms = 0;
-
-    // Iterate over all symptoms in the entry (disease profile)
-    for (let symptom in entry) {
-      if (symptom !== "Disease" && entry[symptom].toLowerCase() === "yes") {
-        
-        // Only match relevant diseases with exact symptoms
-        if (userSymptoms.includes(symptom.toLowerCase())) {
-          matchedSymptoms++;
-
-          // Apply symptom weights if available
-          if (symptomWeights[entry.Disease.toLowerCase()] && symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()]) {
-            matchCount += symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()];
-          } else {
-            matchCount++;
-          }
+    userSymptoms.forEach(symptom => {
+      if (symptoms.includes(symptom)) {
+        const weights = symptomWeights[disease.toLowerCase().replace(/ /g, "")];
+        if (weights && weights[symptom]) {
+          matchCount += weights[symptom];
+        } else {
+          matchCount++;
         }
       }
-    }
+    });
 
-    // Avoid diseases that don't match at least one symptom
-    if (matchedSymptoms > 0) {
-      const disease = entry.Disease;
-      if (!resultMap[disease]) {
-        resultMap[disease] = matchCount;
-      } else {
-        resultMap[disease] += matchCount;
-      }
+    if (matchCount > 0) {
+      resultMap[disease] = matchCount;
     }
   });
 
@@ -161,7 +147,7 @@ app.post("/api/symptoms", (req, res) => {
   if (result.length === 0) {
     res.json({ message: "No diseases matched your symptoms." });
   } else {
-    res.json(result.slice(0, 3)); // Top 3 diseases
+    res.json(result.slice(0, 3)); // Return top 3 diseases
   }
 });
 
