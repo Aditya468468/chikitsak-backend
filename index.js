@@ -1,14 +1,31 @@
 const express = require("express");
 const fs = require("fs");
 const csv = require("csv-parser");
+const cors = require("cors");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ✅ CORS Setup: Allow frontend from Vercel to access this backend
+const allowedOrigins = [
+  "https://chikitsak-aijss-companion-ui-kqk4-l3bfcuy60.vercel.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  }
+}));
 
 app.use(express.json());
 
 let diseaseData = [];
 
-// Load CSV data into memory
+// ✅ Load CSV data into memory
 fs.createReadStream("Disease_symptom_and_patient_profile_dataset.csv")
   .pipe(csv())
   .on("data", (row) => {
@@ -18,6 +35,7 @@ fs.createReadStream("Disease_symptom_and_patient_profile_dataset.csv")
     console.log("CSV loaded ✅");
   });
 
+// ✅ API Route
 app.post("/api/symptoms", (req, res) => {
   const userSymptoms = req.body.symptoms.map(s => s.toLowerCase());
   const result = [];
@@ -25,7 +43,11 @@ app.post("/api/symptoms", (req, res) => {
   diseaseData.forEach((entry) => {
     let matchCount = 0;
     for (let symptom in entry) {
-      if (symptom !== "Disease" && entry[symptom].toLowerCase() === "yes" && userSymptoms.includes(symptom.toLowerCase())) {
+      if (
+        symptom !== "Disease" &&
+        entry[symptom].toLowerCase() === "yes" &&
+        userSymptoms.includes(symptom.toLowerCase())
+      ) {
         matchCount++;
       }
     }
@@ -38,12 +60,12 @@ app.post("/api/symptoms", (req, res) => {
     }
   });
 
-  // Sort by highest matches
+  // ✅ Sort and return top 3 matches
   result.sort((a, b) => b.matches - a.matches);
-
-  res.json(result.slice(0, 3)); // Return top 3
+  res.json(result.slice(0, 3));
 });
 
+// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} 🔥`);
 });
