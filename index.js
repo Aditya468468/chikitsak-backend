@@ -34,10 +34,10 @@ fs.createReadStream("Disease_symptom_and_patient_profile_dataset.csv")
     console.log("CSV loaded ✅");
   });
 
-// ✅ API Route
+// ✅ API Route (Updated with grouping logic)
 app.post("/api/symptoms", (req, res) => {
   const userSymptoms = req.body.symptoms.map(s => s.toLowerCase());
-  const result = [];
+  const resultMap = {};
 
   diseaseData.forEach((entry) => {
     let matchCount = 0;
@@ -52,23 +52,28 @@ app.post("/api/symptoms", (req, res) => {
     }
 
     if (matchCount > 0) {
-      result.push({
-        disease: entry.Disease,
-        matches: matchCount,
-      });
+      const disease = entry.Disease;
+      if (!resultMap[disease]) {
+        resultMap[disease] = matchCount;
+      } else {
+        resultMap[disease] += matchCount;
+      }
     }
   });
 
-  // ✅ Log the result to check what the backend is sending to the frontend
+  const result = Object.entries(resultMap).map(([disease, matches]) => ({
+    disease,
+    matches,
+  }));
+
+  result.sort((a, b) => b.matches - a.matches);
+
   console.log("Backend result:", result);
 
-  // ✅ If no results, send a message
   if (result.length === 0) {
     res.json({ message: "No diseases matched your symptoms." });
   } else {
-    // ✅ Sort and return top 3 matches
-    result.sort((a, b) => b.matches - a.matches);
-    res.json(result.slice(0, 3));
+    res.json(result.slice(0, 3)); // Top 3 diseases
   }
 });
 
@@ -76,3 +81,4 @@ app.post("/api/symptoms", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} 🔥`);
 });
+
