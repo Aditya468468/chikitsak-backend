@@ -25,7 +25,7 @@ app.use(express.json());
 let diseaseData = [];
 
 // ✅ Load CSV data into memory
-fs.createReadStream("Disease_symptom_and_patient_profile_dataset.csv")
+fs.createReadStream("cleaned_symptom_disease_dataset.csv")
   .pipe(csv())
   .on("data", (row) => {
     diseaseData.push(row);
