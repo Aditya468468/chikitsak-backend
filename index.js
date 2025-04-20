@@ -2,13 +2,12 @@ const express = require("express");
 const fs = require("fs");
 const csv = require("csv-parser");
 const cors = require("cors");
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ✅ CORS Setup: Allow frontend from Vercel to access this backend
 const allowedOrigins = [
-  "https://chikitsak-aijss-companion-ui-kqk4-l3bfcuy60.vercel.app"
+   /\.vercel\.app$/
 ];
 
 app.use(cors({
