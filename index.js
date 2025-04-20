@@ -59,9 +59,17 @@ app.post("/api/symptoms", (req, res) => {
     }
   });
 
-  // ✅ Sort and return top 3 matches
-  result.sort((a, b) => b.matches - a.matches);
-  res.json(result.slice(0, 3));
+  // ✅ Log the result to check what the backend is sending to the frontend
+  console.log("Backend result:", result);
+
+  // ✅ If no results, send a message
+  if (result.length === 0) {
+    res.json({ message: "No diseases matched your symptoms." });
+  } else {
+    // ✅ Sort and return top 3 matches
+    result.sort((a, b) => b.matches - a.matches);
+    res.json(result.slice(0, 3));
+  }
 });
 
 // ✅ Start the server
