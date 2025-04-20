@@ -100,9 +100,16 @@ const symptomWeights = {
     "dizziness": 3,
     "dark urine": 3,
   },
+  legPain: {
+    "leg pain": 5,
+    "swelling": 4,
+    "bruising": 3,
+    "pain when walking": 4,
+    "numbness": 3,
+  }
 };
 
-// ✅ API Route (Updated with symptom weights)
+// ✅ API Route (Improved with stricter symptom matching)
 app.post("/api/symptoms", (req, res) => {
   const userSymptoms = req.body.symptoms.map(s => s.toLowerCase());
   const resultMap = {};
@@ -110,21 +117,29 @@ app.post("/api/symptoms", (req, res) => {
   diseaseData.forEach((entry) => {
     let matchCount = 0;
 
+    // Track matched symptoms count
+    let matchedSymptoms = 0;
+
     // Iterate over all symptoms in the entry (disease profile)
     for (let symptom in entry) {
       if (symptom !== "Disease" && entry[symptom].toLowerCase() === "yes") {
         
-        // Apply symptom weights if available
-        if (symptomWeights[entry.Disease.toLowerCase()] && symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()]) {
-          matchCount += symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()];
-        } else {
-          // Default weight (1) if no weight is defined
-          matchCount++;
+        // Only match relevant diseases with exact symptoms
+        if (userSymptoms.includes(symptom.toLowerCase())) {
+          matchedSymptoms++;
+
+          // Apply symptom weights if available
+          if (symptomWeights[entry.Disease.toLowerCase()] && symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()]) {
+            matchCount += symptomWeights[entry.Disease.toLowerCase()][symptom.toLowerCase()];
+          } else {
+            matchCount++;
+          }
         }
       }
     }
 
-    if (matchCount > 0) {
+    // Avoid diseases that don't match at least one symptom
+    if (matchedSymptoms > 0) {
       const disease = entry.Disease;
       if (!resultMap[disease]) {
         resultMap[disease] = matchCount;
@@ -154,5 +169,3 @@ app.post("/api/symptoms", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} 🔥`);
 });
-
-
